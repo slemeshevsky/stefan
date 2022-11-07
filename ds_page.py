@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import mpld3
 import streamlit as st
 import time
-from fdm.exact import T
+from exact import T
 import streamlit.components.v1 as components
 
 def form_grid_data():

@@ -1,6 +1,6 @@
 import streamlit as st
 import numpy as np
-from fdm.parameters import Material, Problem
+from parameters import Material, Problem
 from bokeh.plotting import figure
 
 st.title("Численное решение задачи Стефана")
