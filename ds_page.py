@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import matplotlib.pyplot as plt
-import mpld3
+import plotly.graph_objects as go
 import streamlit as st
 import time
-from exact import T
+from fdm.exact import T
 import streamlit.components.v1 as components
 
 def form_grid_data():
@@ -75,10 +75,10 @@ def exact_solution(dx, dt, T_end=20):
     fig, ax = plt.subplots(figsize=(3,1.5))
     ax.set_xlabel('Глубина, м')
     ax.set_ylabel('Температура, К')
-    print(f'z={z}, T(z,0) = {res[0][1]}')
     plotLine, = ax.plot(z, res[0][1])
     plotTitle = ax.set_title('t = 0')
-    fig_html = mpld3.fig_to_html(fig)
+    line = go.Scatter(x=z.flatten(), y=res[0][1])
+    frames = []
     # with st.session_state.sol_plot.container():
     #     st.pyplot(fig)
     day=0
@@ -92,7 +92,7 @@ def exact_solution(dx, dt, T_end=20):
         zbf, u = T(z, t)
         time_interval.append(t)
         zbfs.append(zbf)
-        time.sleep(0.05)
+#        time.sleep(0.05)
         with st.session_state.placeholder.container():
             st.header('Результаты')
             col1, col2 = st.columns(2)
@@ -106,10 +106,35 @@ def exact_solution(dx, dt, T_end=20):
                 )
             with col2:
                 with st.session_state.sol_plot.container():
-                    plotLine.set_ydata(u)
-                    plotTitle.set_text(f'{t/86400} день')
-#                    components.html(fig_html, height=300)
-                    st.pyplot(fig)
+                    line = go.Scatter(x=z.flatten(), y=u)
+
+                    button = {
+                        "type": "buttons",
+                        "buttons": [
+                            {
+                                "label": "Просмотр",
+                                "method": "animate",
+                                "args": [None, {"frame": {"duration": 20}}],
+                            }
+                            ]
+                        }
+                    layout = go.Layout(updatemenus=[button],
+                                       title_text=f'{t/86400} день'
+                                       )
+
+                    frame = go.Frame(
+                        data = [line],
+                        layout = go.Layout(title_text=f'{t/86400} день')
+                    )
+
+                    frames.append(frame)
+
+                    fig = go.Figure(data=[line], frames=frames, layout=layout)
+                    st.plotly_chart(fig, use_container_width=True)
+                    # plotLine.set_ydata(u)
+#                     plotTitle.set_text(f'{t/86400} день')
+# #                    components.html(fig_html, height=300)
+#                     st.pyplot(fig)
 
         
         res.append(u)
