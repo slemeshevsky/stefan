@@ -92,34 +92,42 @@ class Material(Parameters):
         self.prm = dict(Name='', Density=1000.,
                         Tbf=0.0, Wtot=0.,
                         Conductivity={'f': 2.11,'th':1.83},
-                        Capacity={'f': 2.02, 'th': 2.44})
+                        Capacity={'f': 2.02e6, 'th': 2.44e6})
         self.type = dict(Name=str, Density=float, Tbf=float, Wtot=float,
                           Conductivity=dict, Capacity=dict)
         self.help = dict(Name='Name of material', Density='Dry density',
                          Tbf='Freezing point', Wtot='Total moisture',
                          Conductivity='Thermal conductivity:"f" - frozen state, "th" - thawed state',
                          Capacity='Volumetric heat capacity:"f" - frozen state, "th" - thawed state')
+        self.prm['Tbf_K'] = self.prm['Tbf'] + 273.15
+
+        def set(self, **parameters):
+            super().set(**parameters)
+            self.prm['Tbf_K'] = self.prm['Tbf'] + 273.15
 
 class Problem(Parameters):
     """
     Физические параметры для задачи Стефана
     """
     def __init__(self, Soil):
-        self.prm = dict(H=20, M=Soil, Lw=334., T0=1.5, Tbnd=-27+273, T_end=300)
-        self.prm['Tbf'] = self['M']['Tbf']
+        self.prm = dict(H=20, M=Soil, Lw=3.34e5, A=10, T0=1.5, Tbnd=-27+273.15, T_end=300)
+        self.prm['Tbf'] = self['M']['Tbf_K']
         self.prm['L'] = self['M']['Density']*self['M']['Wtot']*self['Lw']
-        self.type = dict(H=float, M=Material, Lw=float, T0=float, Tbnd=float, T_end=int,
+        self.type = dict(H=float, M=Material, Lw=float, A=float, T0=float, Tbnd=float, T_end=int,
                          Tbf=self['M'].help['Tbf'], L=float)
         self.help = dict(H='Depth of soil', M='Soil material', Lw='Latent heat of freezing of water',
-                         T0='Initial temperature of soil', Tbnd='Upper boundary temperature',
-                         T_end='End time of simulation',
+                         A='Smoothing coefficient', T0='Initial temperature of soil',
+                         Tbnd='Upper boundary temperature', T_end='End time of simulation',
                          Tbf=self['M']['Tbf'], L='Volumetric latent heat of freezing of soil water')
 
     def w_u(self, T):
-        A = 10.
         T = np.array([T]) if not isinstance(T, np.ndarray) else T
-        return np.where(T < self['Tbf'], 1./(1 + A*(self['Tbf']-T)), 1.)
+        return np.where(T < self['Tbf'], 1./(1 + self['A']*(self['Tbf']-T)), 1.)
 
+    def w_u_dT(self, T):
+        T = np.array([T]) if not isinstance(T, np.ndarray) else T
+        return np.where(T < self['Tbf'], self['A']/(1. + self['A']*(self['Tbf']-T))**2, 0.)
+    
     def C(self, T):
         Cf = self['M']['Capacity']['f']
         Cth = self['M']['Capacity']['th']
@@ -131,9 +139,7 @@ class Problem(Parameters):
         return lmbdaf + (lmbdaf-lmbdath)*self.w_u(T)
 
     def C_eff(self, T):
-        w_dT = (self.w_u(T)[1:] - self.w_u(T)[:-1])/(T[1]-T[0]) if np.abs(T[1]-T[0]) > 0.0001 else np.zeros(len(T[1:]))
-        w_u_dT = np.concatenate(([w_dT[0]],w_dT))
-        return self.C(T) + self['L']*w_u_dT
+        return self.C(T) + self['L']*self.w_u_dT(T)
 
 
     # def T_exact(self):

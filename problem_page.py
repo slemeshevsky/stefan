@@ -1,6 +1,6 @@
 import streamlit as st
 import numpy as np
-from parameters import Material, Problem
+from fdm.parameters import Material, Problem
 from bokeh.plotting import figure
 
 st.title("Численное решение задачи Стефана")
@@ -18,22 +18,25 @@ def form_problem_params():
                                   Capacity={'f': 2.02, 'th': 2.44})
     if 'problem' not in st.session_state:
         st.session_state.problem = Problem(st.session_state.Soil)
+        st.session_state.problem.set(T0=1.5+273.15)
     with st.form(key='problem_data'):
         st.header(f'Параметры задачи')
-        T0 = st.number_input('Начальная температура материала, °C', value=st.session_state.problem['T0'])
-        Tbnd = st.number_input('Температура на торце, °C', value=st.session_state.problem['Tbnd']-273)
+        print(f"T0={st.session_state.problem['T0']}")
+        T0 = st.number_input('Начальная температура материала, °C', value=st.session_state.problem['T0']-273.15)
+        Tbnd = st.number_input('Температура на торце, °C', value=st.session_state.problem['Tbnd']-273.15)
         submitted1 = st.form_submit_button("Обновить")
         if submitted1:
-            st.session_state.problem.set(Tbnd=Tbnd+273, T0=T0+273)
+            st.session_state.problem.set(Tbnd=Tbnd+273.15, T0=T0+273.15)
+            print(f"T0={st.session_state.problem['T0']}")
 
 def form_material_data():
     with st.form(key='material_data'):
         st.header(f'Параметры материала')
         name = st.text_input('Название материала', value=st.session_state.Soil["Name"])
         rho = st.number_input('Плотность материала, кг/м3', value=st.session_state.Soil['Density'])
-        Tbf = st.number_input('Температура начала замерзания грунта, °C',value=st.session_state.Soil['Tbf']-273)
+        Tbf = st.number_input('Температура начала замерзания грунта, °C',value=st.session_state.Soil['Tbf']-273.15)
         Wtot = st.number_input('Общее количество влаги, д.е.', value=st.session_state.Soil['Wtot'])
-        x = np.linspace(-30, 2, 100)
+        x = np.linspace(-30+273.15, 2+273.15, 100)
         with st.expander('Кривая незамерзшей воды'):
             y = st.session_state.problem.w_u(x)
             p = figure(

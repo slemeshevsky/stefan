@@ -3,7 +3,6 @@ import streamlit as st
 import numpy as np
 from scipy.special import erf
 from scipy.optimize import root
-import time
 
 def T(z, t):
     Tbf, T0, Tbnd = st.session_state.problem['Tbf T0 Tbnd'.split()]
@@ -40,33 +39,3 @@ def T(z, t):
         else:
             T[i] = Tbf
     return zbf, T
-
-def exact_solution(dx, dt, T_end=20):
-    st.session_state.my_bar.progress(0)
-    z = np.linspace(0, st.session_state.problem['H'], int(st.session_state.problem['H']/dx)+1)
-    t = 0
-    time_interval = [0]
-    zbfs = [0]
-    res = [T(z,0)]
-    day=0
-    while t < T_end:
-        t += dt
-        day = int(t/86400)
-        u = np.zeros_like(z)
-        zbf, u = T(z, t)
-        time_interval.append(t)
-        zbfs.append(zbf)
-        time.sleep(0.05)
-        with st.session_state.placeholder.container():
-            st.header('Результаты')
-            col1, col2 = st.columns(2)
-            col1.metric(
-                label='День',
-                value=day)
-            col2.metric(
-                label='Глубина промерзания, м',
-                value=zbf
-            )
-        res.append(u)
-        st.session_state.my_bar.progress(t/T_end)
-    return zbfs, res

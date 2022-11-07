@@ -38,6 +38,7 @@ class Mesh(object):
         Либо N либо d должны быть заданы
         """
 
+
         if N is None and d is None:
             raise ValueError("Mesh constructor: either N either d must be given")
         if L is None:
